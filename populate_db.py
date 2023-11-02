@@ -3,13 +3,13 @@ from _decimal import Decimal
 
 from django.db.models import AutoField, PositiveIntegerField, BooleanField, CharField, TextField, EmailField, \
     DecimalField, DateField
-from django.db.models.fields.related import ForeignKey
+from django.db.models.fields.related import ForeignKey, OneToOneField, ManyToManyField
 
 from datetime import datetime, timedelta
 
-
 def populate_model_with_data(model, num_records=10):
     model_fields = model._meta.fields
+    model_relationships = model._meta.related_objects
 
     for _ in range(num_records):
         field_values = {}
@@ -18,8 +18,8 @@ def populate_model_with_data(model, num_records=10):
             if hasattr(field, 'choices') and field.choices:
                 random_choice = random.choice(field.choices)
                 field_values[field.name] = random_choice[0]
-            elif isinstance(field, AutoField) or isinstance(field, ForeignKey):
-                continue  # Skip AutoField and ForeignKey
+            elif isinstance(field, AutoField):
+                continue  # Skip AutoField
             elif isinstance(field, PositiveIntegerField):
                 field_values[field.name] = random.randint(1, 100)
             elif isinstance(field, BooleanField):
@@ -42,5 +42,21 @@ def populate_model_with_data(model, num_records=10):
                 delta = end_date - start_date
                 random_days = random.randint(0, delta.days)
                 field_values[field.name] = start_date + timedelta(days=random_days)
+            elif isinstance(field, ForeignKey) or isinstance(field, OneToOneField):
+                # Handle ForeignKey and OneToOneField relationships
+                related_model = field.related_model
+                field_values[field.name] = related_model.objects.order_by('?').first()
+            elif isinstance(field, ManyToManyField):
+                # Handle ManyToManyField relationships
+                related_model = field.related_model
+                field_values[field.name] = related_model.objects.order_by('?').all()
 
-        model.objects.create(**field_values)
+        instance = model.objects.create(**field_values)
+
+        # If there are ManyToMany relationships, add them after creating the instance
+        for field in model_relationships:
+            if isinstance(field, ManyToManyField):
+                related_model = field.related_model
+                related_instances = related_model.objects.order_by('?')[:random.randint(1, 5)]
+                setattr(instance, field.name, related_instances)
+                instance.save()
