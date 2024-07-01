@@ -2,7 +2,7 @@ import random
 from _decimal import Decimal
 
 from django.db.models import AutoField, PositiveIntegerField, BooleanField, CharField, TextField, EmailField, \
-    DecimalField, DateField
+    DecimalField, DateField, IntegerField
 from django.db.models.fields.related import ForeignKey, OneToOneField, ManyToManyField
 
 from datetime import datetime, timedelta
@@ -24,6 +24,8 @@ def populate_model_with_data(model, num_records=10):
                 continue  # Skip AutoField
             elif isinstance(field, PositiveIntegerField):
                 field_values[field.name] = random.randint(1, 100)
+            elif isinstance(field, IntegerField):
+                field_values[field.name] = random.randint(-100, 100)
             elif isinstance(field, BooleanField):
                 field_values[field.name] = random.choice([True, False])
             elif isinstance(field, CharField) or isinstance(field, TextField):
